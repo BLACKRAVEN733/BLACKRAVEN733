@@ -1,1 +1,30 @@
-pip pyt
+import os
+import requests
+import feedparser
+
+# Settings
+RSS_URL = "https://nftevening.com/feed/" # Change this to any NFT news RSS
+BOT_TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
+CHAT_ID = os.environ['TELEGRAM_CHAT_ID']
+
+def send_telegram(message):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "HTML"}
+    requests.post(url, data=payload)
+
+# 1. Fetch News
+feed = feedparser.parse(RSS_URL)
+latest_entry = feed.entries[0]
+msg = f"<b>{latest_entry.title}</b>\n\n{latest_entry.link}"
+
+# 2. Check if already posted
+if os.path.exists("last_link.txt"):
+    with open("last_link.txt", "r") as f:
+        if f.read() == latest_entry.link:
+            print("No new news.")
+            exit()
+
+# 3. Post and Save
+send_telegram(msg)
+with open("last_link.txt", "w") as f:
+    f.write(latest_entry.link)
