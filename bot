@@ -1,0 +1,45 @@
+import asyncio
+import requests
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import Command
+
+# --- CONFIGURATION ---
+API_TOKEN = '8628757389:AAG6MlRL4OrUW7HrHtRNSJfwfcMTqIXgwh4'
+# ---------------------
+
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher()
+
+def get_nft_data(collection_id):
+    # This uses the public TonAPI to get collection stats
+    url = f"https://tonapi.io/v2/nfts/collections/{collection_id}"
+    try:
+        response = requests.get(url)
+        data = response.json()
+        
+        name = data.get('metadata', {}).get('name', 'Unknown')
+        # Floor price is in nanoTON (10^9)
+        floor_nano = data.get('stats', {}).get('floor_price', 0)
+        floor_ton = floor_nano / 1000000000
+        
+        return f"📊 *{name}*\n\n💰 Floor Price: {floor_ton:.2f} TON"
+    except Exception as e:
+        return "❌ Error fetching data. Make sure the address is correct."
+
+@dp.message(Command("start"))
+async def start(message: types.Message):
+    await message.answer("Send me a TON NFT Collection Address (e.g., the one for Telegram Usernames or Gifts) to get the floor price!")
+
+@dp.message()
+async def handle_message(message: types.Message):
+    wait_msg = await message.answer("🔍 Searching...")
+    result = get_nft_data(message.text)
+    await wait_msg.edit_text(result, parse_mode="Markdown")
+
+async def main():
+    print("Bot is running...")
+    await dp.start_polling(bot)
+
+if name == 'main':
+    asyncio.run(main())
+EOF
